@@ -1,0 +1,89 @@
+// คัดลอกไปใช้งานเลยครับ ฝากกดติดตามด้วยนะครับ// 
+
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+
+int BUTTON1 = D1;
+int BUTTON2 = D2;
+int b1 = 1;
+int b2 = 1;
+
+int VR =A0;
+int VR_Value =0;
+
+const char *ssid = "smart"; 
+const char *password = "1234567890";  
+ 
+
+const char *mqtt_broker = "broker.hivemq.com"; 
+const char *topic = "Test";
+const int mqtt_port = 1883;
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+void setup() {
+ Serial.begin(115200);
+ WiFi.begin(ssid, password);
+ pinMode(BUTTON1,INPUT_PULLUP);
+ pinMode(BUTTON2,INPUT_PULLUP);
+ while (WiFi.status() != WL_CONNECTED) {
+  delay(500);
+  Serial.println("Connecting to WiFi..");
+ }
+ 
+ Serial.println("Connected to the WiFi network");
+ 
+ client.setServer(mqtt_broker, mqtt_port);
+ client.setCallback(callback);
+ 
+ while (!client.connected()) {
+ String client_id = "esp8266-client-";
+ client_id += String(WiFi.macAddress());
+ 
+ Serial.printf("The client %s connects to mosquitto mqtt broker\n", client_id.c_str());
+ 
+ if (client.connect(client_id.c_str())) {
+  Serial.println("Public emqx mqtt broker connected");
+ } else {
+  Serial.print("failed with state ");
+  Serial.print(client.state());
+  delay(2000);
+ }
+}
+ 
+ client.publish(topic, "อุปกรณ์เชือมต่อเเล้ว");
+ client.subscribe(topic);
+ }
+
+
+void callback(char *topic, byte *payload, unsigned int length) {
+ Serial.print("Message arrived in topic: ");
+ Serial.println(topic);
+ Serial.print("Message:");
+ 
+ for (int i = 0; i < length; i++) {
+  Serial.print((char) payload[i]);
+ }
+ Serial.println();
+ Serial.println(" - - - - - - - - - - - -");
+}
+
+void loop() {
+   client.loop();
+  b1= digitalRead(BUTTON1);
+  b2 = digitalRead(BUTTON2);  
+  VR_Value = analogRead(VR);
+
+  client.publish(topic,String(VR_Value).c_str());
+  
+  if(b1 == 0){
+   client.publish(topic, "สวัสดี");
+   delay(3000);
+  }
+  if(b2 == 0){
+  client.publish(topic, "ชาวโลก");
+  delay(3000);
+  }
+
+}
+
